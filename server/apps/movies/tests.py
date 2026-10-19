@@ -57,7 +57,8 @@ class MovieApiTests(TestCase):
 
     def test_detail(self):
         m = Movie.objects.first()
-        r = self.c.get(f"/api/movies/{m.id}")
+        r = self.c.get(f"/api/movies/{m.tmdb_id}")  # id public = id TMDB
         self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["id"], m.tmdb_id)
         self.assertIn("trailerUrl", r.json())
         self.assertEqual(self.c.get("/api/movies/999999").status_code, 404)

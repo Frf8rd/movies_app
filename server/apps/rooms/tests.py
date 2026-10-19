@@ -194,3 +194,12 @@ class RoomFlowTests(TestCase):
         self.assertEqual(len(self.h.get("/api/rooms?status=closed").json()), 0)
         self.assertEqual(self.b.delete(f"/api/rooms/{room['id']}").status_code, 403)
         self.assertEqual(self.h.delete(f"/api/rooms/{room['id']}").status_code, 204)
+
+    def test_room_list_member_count(self):
+        room = self._create_room()
+        self.b.post("/api/rooms/join", {"code": room["code"]}, format="json")
+        anon = guest_client("")
+        anon.credentials()
+        anon.post("/api/rooms/join", {"code": room["code"], "nickname": "Invitat"}, format="json")
+        self.assertEqual(self.h.get("/api/rooms").json()[0]["memberCount"], 3)
+        self.assertEqual(self.b.get("/api/rooms").json()[0]["memberCount"], 3)

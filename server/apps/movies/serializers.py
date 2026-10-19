@@ -24,6 +24,7 @@ class ProviderSerializer(serializers.ModelSerializer):
 class MovieSummarySerializer(serializers.ModelSerializer):
     """Varianta scurtă, pentru carduri (deck, rezultate, liste). Context opțional: `country`."""
 
+    id = serializers.IntegerField(source="tmdb_id", read_only=True)  # id public = id TMDB (la fel ca tmdbId)
     poster_url = serializers.SerializerMethodField()
     genres = serializers.SerializerMethodField()
     providers = serializers.SerializerMethodField()

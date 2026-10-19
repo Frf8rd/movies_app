@@ -5,6 +5,7 @@ import requests
 from django.conf import settings
 
 BASE_URL = "https://api.themoviedb.org/3"
+RETRY_PAUSE_CAP = 3  # secunde: cererile vin de la utilizatori, nu vrem pauze lungi
 
 
 class TMDBError(Exception):
@@ -28,13 +29,17 @@ class TMDBClient:
             params["api_key"] = self.api_key
 
         for attempt in range(4):
-            resp = self.session.get(f"{BASE_URL}{path}", params=params, headers=headers, timeout=15)
+            try:
+                resp = self.session.get(f"{BASE_URL}{path}", params=params, headers=headers, timeout=10)
+            except (requests.ConnectionError, requests.Timeout):
+                time.sleep(min(1 + attempt, RETRY_PAUSE_CAP))
+                continue
             if resp.status_code == 429 or resp.status_code >= 500:
-                time.sleep(float(resp.headers.get("Retry-After", 1 + attempt)))
+                time.sleep(min(float(resp.headers.get("Retry-After", 1 + attempt)), RETRY_PAUSE_CAP))
                 continue
             if resp.status_code == 401:
                 raise TMDBError("TMDB a respins cheia API (401). Verifică TMDB_API_KEY.")
-            resp.raise_for_status()
+            resp.raise_for_status()  # 404 etc. -> requests.HTTPError
             return resp.json()
         raise TMDBError(f"TMDB nu răspunde la {path}")
 
@@ -46,6 +51,17 @@ class TMDBClient:
 
     def popular(self, page: int) -> list[dict]:
         return self._get("/movie/popular", page=page)["results"]
+
+    def trending(self, page: int = 1) -> dict:
+        """Filmele în trend săptămâna aceasta: {page, results, total_pages, total_results}."""
+        return self._get("/trending/movie/week", page=page)
+
+    def search(self, query: str, page: int = 1) -> dict:
+        return self._get("/search/movie", query=query, page=page, include_adult="false")
+
+    def discover(self, filters: dict, page: int = 1) -> dict:
+        """`filters` are chei TMDB exact ca în documentație (ex. „with_runtime.lte”)."""
+        return self._get("/discover/movie", **{**filters, "page": page})
 
     def movie_details(self, tmdb_id: int) -> dict:
         """Un singur apel: detalii + trailer + platforme (append_to_response)."""

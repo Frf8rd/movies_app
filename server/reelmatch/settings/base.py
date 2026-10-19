@@ -151,3 +151,9 @@ VOTE_RETENTION_DAYS = env.int("VOTE_RETENTION_DAYS", default=90)  # GDPR: vezi c
 TMDB_API_KEY = env("TMDB_API_KEY", default="")
 TMDB_LANGUAGE = env("TMDB_LANGUAGE", default="ro-RO")
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
+TMDB_MIN_VOTES = env.int("TMDB_MIN_VOTES", default=200)  # pachete de cameră: fără filme obscure
+TMDB_DECK_MAX_PAGE = env.int("TMDB_DECK_MAX_PAGE", default=25)  # din primele N pagini (20 filme/pagină) se aleg filmele
+MOVIE_REFRESH_DAYS = env.int("MOVIE_REFRESH_DAYS", default=7)  # filmele salvate se reîmprospătează de la TMDB
+
+# Cache în memorie (per proces) pentru răspunsurile TMDB: trending, căutare, detalii.
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "reelmatch"}}

@@ -41,6 +41,19 @@ python manage.py test                                      # pe baza din DATABAS
 - Căutare filme: răspuns paginat `{ count, next, previous, results }`; restul listelor sunt array-uri simple.
 - Limitare de cereri: `/auth/*` 20/min, `/rooms/join` 15/min (configurabil prin `THROTTLE_AUTH`, `THROTTLE_JOIN`) → `429`.
 
+## Filme live din TMDB (fără catalog stocat în avans)
+Cu `TMDB_API_KEY` setat, filmele **nu mai trebuie aduse în baza de date în avans**:
+- `GET /movies/trending`, `GET /movies/search` și `GET /movies/:id` vin direct de la TMDB (cache în memorie 10 min / 6 h) și **nu se salvează**.
+- Un film se salvează în DB doar când e folosit: pachetul unei camere (la `POST /rooms/:id/start`, din `/discover`, pagini aleatorii
+  din cele mai populare), `POST /me/watchlist`, `POST /lists/:id/items`. Se reîmprospătează de la TMDB după `MOVIE_REFRESH_DAYS` (7) zile.
+- **Contract nou:** `id` al unui film este acum **id-ul TMDB** (identic cu `tmdbId`). `movieId` din vot, watchlist, liste, pick și `/movies/:id`
+  este tot id-ul TMDB.
+- Cardurile din trending/căutare au `runtime: null` și `providers: []` (listele TMDB nu le conțin); `GET /movies/:id` le are completate.
+- Cu `q`, TMDB nu permite filtre de durată/platformă; gen, an și notă se aplică pe pagina curentă. `pageSize` e ignorat (20/pagină).
+- Dacă TMDB nu răspunde: `502 TMDB_UNAVAILABLE`. Fără cheie TMDB (mod demo, teste) aplicația folosește filmele din DB (`seed_demo`).
+- Tot necesar o dată: `python manage.py sync_movies --genres --providers --country RO` (genurile și platformele rămân în DB).
+- Setări opționale: `TMDB_MIN_VOTES` (200), `TMDB_DECK_MAX_PAGE` (25), `MOVIE_REFRESH_DAYS` (7).
+
 ## Deploy (Render / Railway / Fly.io)
 `Procfile` inclus (`migrate` + `gunicorn`). Variabile: `DJANGO_SETTINGS_MODULE=reelmatch.settings.prod`, `DJANGO_SECRET_KEY`,
 `DJANGO_ALLOWED_HOSTS`, `DATABASE_URL` (pooled), `TMDB_API_KEY`, `CSRF_TRUSTED_ORIGINS`.

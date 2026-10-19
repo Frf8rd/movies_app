@@ -6,7 +6,8 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 
 from apps.core.exceptions import Conflict
-from apps.movies.models import Genre, Movie
+from apps.movies.models import Genre
+from apps.movies.services.catalog import ensure_movie
 
 from .models import WatchedMovie, WatchlistItem
 from .serializers import AddWatchlistSerializer, RatingSerializer, WatchedMovieSerializer, WatchlistItemSerializer
@@ -35,7 +36,7 @@ class WatchlistView(generics.GenericAPIView):
     def post(self, request):
         body = AddWatchlistSerializer(data=request.data)
         body.is_valid(raise_exception=True)
-        movie = get_object_or_404(Movie, pk=body.validated_data["movie_id"])
+        movie = ensure_movie(body.validated_data["movie_id"], _country(request.user))  # movieId = id TMDB; se salvează acum
         item, created = WatchlistItem.objects.get_or_create(user=request.user, movie=movie)
         if not created:
             raise Conflict("ALREADY_IN_WATCHLIST", "Filmul este deja în watchlist.")
@@ -46,7 +47,7 @@ class WatchlistDeleteView(generics.GenericAPIView):
     serializer_class = WatchlistItemSerializer
 
     def delete(self, request, movie_id):
-        deleted, _ = WatchlistItem.objects.filter(user=request.user, movie_id=movie_id).delete()
+        deleted, _ = WatchlistItem.objects.filter(user=request.user, movie__tmdb_id=movie_id).delete()
         if not deleted:
             return Response({"error": {"code": "NOT_FOUND", "message": "Filmul nu e în watchlist."}}, status=404)
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -7,7 +7,7 @@ class ListsAndLibraryTests(TestCase):
     def setUp(self):
         self.cat = make_catalog(3)
         self.c = auth_client(make_user())
-        self.mid = self.cat["movies"][0].id
+        self.mid = self.cat["movies"][0].tmdb_id  # id public = id TMDB
 
     def test_list_crud_and_items(self):
         r = self.c.post("/api/lists", {"name": "Cu prietenii", "category": "FRIENDS"}, format="json")

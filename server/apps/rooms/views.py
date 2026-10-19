@@ -1,10 +1,9 @@
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -46,7 +45,8 @@ class RoomListCreateView(generics.GenericAPIView):
     serializer_class = s.RoomCreateSerializer
 
     def get(self, request):
-        qs = Room.objects.filter(members__user=request.user).annotate(member_count=Count("members", distinct=True))
+        mine = RoomMember.objects.filter(user=request.user).values("room_id")
+        qs = Room.objects.filter(pk__in=mine).annotate(member_count=Count("members"))
         st = (request.query_params.get("status") or "").strip()
         if st.lower() == "active":
             qs = qs.exclude(status=Room.Status.CLOSED)
@@ -213,20 +213,22 @@ class VoteCreateView(generics.GenericAPIView):
         room, member = get_room_as_member(request, pk, lock=True)
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        movie_id, choice = ser.validated_data["movie_id"], Vote.Choice[ser.validated_data["choice"]]
+        movie_id, choice = ser.validated_data["movie_id"], Vote.Choice[ser.validated_data["choice"]]  # movie_id = id TMDB
 
         if room.status != Room.Status.VOTING:
             raise Conflict("NOT_VOTING", "Votul nu este deschis în această cameră.")
-        if not RoomMovie.objects.filter(room=room, movie_id=movie_id).exists():
+        deck_movie = RoomMovie.objects.filter(room=room, movie__tmdb_id=movie_id).first()
+        if deck_movie is None:
             raise ApiError(404, "MOVIE_NOT_IN_DECK", "Filmul nu face parte din pachetul camerei.")
-        if Vote.objects.filter(member=member, movie_id=movie_id).exists():
+        db_movie_id = deck_movie.movie_id  # id-ul intern, doar pentru baza de date
+        if Vote.objects.filter(member=member, movie_id=db_movie_id).exists():
             raise Conflict("ALREADY_VOTED", "Ai votat deja acest film.")
         if choice == Vote.Choice.VETO and member.veto_used:
             raise Conflict("VETO_USED", "Ți-ai folosit deja veto-ul în această cameră.")
 
         try:
             with transaction.atomic():
-                Vote.objects.create(room=room, member=member, movie_id=movie_id, choice=choice)
+                Vote.objects.create(room=room, member=member, movie_id=db_movie_id, choice=choice)
         except IntegrityError:
             raise Conflict("ALREADY_VOTED", "Ai votat deja acest film.")
         if choice == Vote.Choice.VETO:
@@ -341,7 +343,7 @@ class RoomPickView(generics.GenericAPIView):
         ser.is_valid(raise_exception=True)
         if room.status != Room.Status.RESULTS:
             raise Conflict("NOT_IN_RESULTS", "Poți alege filmul doar după încheierea votului.")
-        movie = get_object_or_404(Movie, pk=ser.validated_data["movie_id"], roommovie__room=room)
+        movie = get_object_or_404(Movie, tmdb_id=ser.validated_data["movie_id"], roommovie__room=room)
         room.picked_movie = movie
         room.status = Room.Status.CLOSED
         room.save(update_fields=["picked_movie", "status"])
