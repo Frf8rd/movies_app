@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Logo } from '@/components/ui/Logo';
 import { Colors, Radius } from '@/constants/theme';
 import { login } from '@/services/auth';
+import { useAuth } from '@/store/auth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -14,6 +16,8 @@ export default function LoginScreen() {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const devSkip = useAuth((s) => s.devSkip);
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
 
@@ -79,6 +83,21 @@ export default function LoginScreen() {
               style={({ pressed }) => [styles.btn, (!canSubmit || pressed) && { opacity: 0.6 }]}>
               {loading ? <ActivityIndicator color="#1A1030" /> : <Text style={styles.btnText}>Log in</Text>}
             </Pressable>
+
+            <View style={styles.switchRow}>
+              <Text style={styles.switchText}>Don't have an account? </Text>
+              <Pressable onPress={() => router.replace('/register' as any)} hitSlop={8}>
+                <Text style={styles.switchLink}>Sign up</Text>
+              </Pressable>
+            </View>
+
+            {/* DEV ONLY: dispare automat în build-urile de producție */}
+            {__DEV__ && (
+              <Pressable onPress={devSkip} style={({ pressed }) => [styles.skip, pressed && { opacity: 0.6 }]}>
+                <Text style={styles.skipText}>Skip (dev)</Text>
+                <Ionicons name="arrow-forward" size={16} color={Colors.textMuted} />
+              </Pressable>
+            )}
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -109,5 +128,10 @@ const styles = StyleSheet.create({
   input: { flex: 1, color: Colors.text, fontSize: 15 },
   error: { color: Colors.danger, fontSize: 13 },
   btn: { height: 52, borderRadius: Radius.md, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
+  switchText: { color: Colors.textMuted, fontSize: 13 },
+  switchLink: { color: Colors.primary, fontSize: 13, fontWeight: '800' },
+  skip: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
+  skipText: { color: Colors.textMuted, fontSize: 14, fontWeight: '600' },
   btnText: { color: '#1A1030', fontSize: 16, fontWeight: '800' },
 });

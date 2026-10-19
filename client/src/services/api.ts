@@ -1,5 +1,6 @@
 import { API_URL } from '@/constants/config';
-import { useAuth } from '@/store/auth';
+import { devMock, NO_MOCK } from '@/services/devMocks';
+import { DEV_TOKEN, useAuth } from '@/store/auth';
 
 export class ApiError extends Error {
   status: number;
@@ -57,6 +58,12 @@ async function parseError(res: Response): Promise<ApiError> {
 
 export async function api<T = unknown>(path: string, opts: Options = {}): Promise<T> {
   const { method = 'GET', body, auth = true, signal } = opts;
+
+  // Sesiune „Skip (dev)": răspunde cu date locale, fără server (doar în __DEV__).
+  if (__DEV__ && useAuth.getState().access === DEV_TOKEN) {
+    const mock = devMock(method, path, body);
+    if (mock !== NO_MOCK) return mock as T;
+  }
 
   const run = async (token: string | null) => {
     const headers: Record<string, string> = { Accept: 'application/json' };

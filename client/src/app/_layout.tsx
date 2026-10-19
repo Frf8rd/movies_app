@@ -17,6 +17,8 @@ export default function RootLayout() {
   );
   const hydrated = useAuth((s) => s.hydrated);
   const isAuthed = useAuth((s) => !!s.access);
+  const isGuest = useAuth((s) => s.isGuest);
+  const isMember = isAuthed && !isGuest; // utilizator cu cont
   const hydrate = useAuth((s) => s.hydrate);
 
   useEffect(() => {
@@ -40,12 +42,22 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.bg } }}>
-            <Stack.Protected guard={isAuthed}>
+            {/* doar utilizatori cu cont */}
+            <Stack.Protected guard={isMember}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="room/create" />
               <Stack.Screen name="room/join" />
-              <Stack.Screen name="movie/[id]" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="settings" />
+              <Stack.Screen name="lists/[id]" />
               <Stack.Screen name="movies" />
+            </Stack.Protected>
+            {/* cont SAU invitat (README: invitații au acces doar la room/[id]/* și movie/[id]) */}
+            <Stack.Protected guard={isAuthed}>
+              <Stack.Screen name="movie/[id]" />
+              <Stack.Screen name="room/[id]/lobby" />
+              <Stack.Screen name="room/[id]/vote" />
+              <Stack.Screen name="room/[id]/results" />
             </Stack.Protected>
             <Stack.Protected guard={!isAuthed}>
               <Stack.Screen name="(auth)" />
