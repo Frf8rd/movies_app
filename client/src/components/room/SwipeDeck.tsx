@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Animated, Dimensions, PanResponder, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/movie/Poster';
@@ -18,7 +18,10 @@ const LIKE = '#22D3C5';
 // Folosește Animated + PanResponder din React Native (fără dependențe native extra).
 export const SwipeDeck = forwardRef<DeckHandle, { movie: MovieDetail; next?: MovieDetail; onVote: (c: SwipeChoice) => void }>(
   function SwipeDeck({ movie, next, onVote }, ref) {
-    const pan = useRef(new Animated.ValueXY()).current;
+    // IMPORTANT: componenta este remontată pentru fiecare film (key={movie.id} în vote.tsx),
+    // deci `pan` pornește mereu de la (0,0). Nu mai resetăm manual o valoare animată nativ —
+    // pe Android resetul nu se sincroniza mereu și cardul rămânea în afara ecranului (ecran gol).
+    const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
     const busy = useRef(false);
     const onVoteRef = useRef(onVote);
     onVoteRef.current = onVote;
@@ -31,18 +34,17 @@ export const SwipeDeck = forwardRef<DeckHandle, { movie: MovieDetail; next?: Mov
       // so loading poster images doesn't make the swipe feel delayed.
       Animated.timing(pan, { toValue: to, duration: 220, useNativeDriver: true }).start(({ finished }) => {
         if (finished) onVoteRef.current(choice);
+        else {
+          // animație întreruptă: readu cardul la centru ca să nu rămână blocat/invizibil
+          busy.current = false;
+          Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: true }).start();
+        }
       });
     };
     const flingRef = useRef(fling);
     flingRef.current = fling;
 
     useImperativeHandle(ref, () => ({ swipe: (c) => flingRef.current(c) }));
-
-    // când vine următorul film, readucem cardul la centru (înainte de paint)
-    useLayoutEffect(() => {
-      pan.setValue({ x: 0, y: 0 });
-      busy.current = false;
-    }, [movie.id, pan]);
 
     const responder = useRef(
       PanResponder.create({
@@ -122,7 +124,7 @@ function CardBody({ movie }: { movie: MovieDetail }) {
 
 const styles = StyleSheet.create({
   stack: { flex: 1 },
-  card: { ...StyleSheet.absoluteFillObject, borderRadius: 28, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden' },
+  card: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 28, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden' },
   behind: { transform: [{ scale: 0.95 }], opacity: 0.7 },
   rating: { position: 'absolute', zIndex: 2, elevation: 2, top: 14, right: 14, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 30, borderRadius: 15, backgroundColor: 'rgba(10,15,36,0.72)' },
   ratingText: { color: '#fff', fontSize: 13, fontWeight: '800' },

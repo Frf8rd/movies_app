@@ -130,7 +130,7 @@ export default function VoteScreen() {
         ) : (
           <>
             <View style={styles.deck}>
-              <SwipeDeck ref={deckRef} movie={movies[index]} next={movies[index + 1]} onVote={onVote} />
+              <SwipeDeck key={String(movies[index].id)} ref={deckRef} movie={movies[index]} next={movies[index + 1]} onVote={onVote} />
             </View>
 
             <View style={styles.actions}>
