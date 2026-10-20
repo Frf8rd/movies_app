@@ -59,7 +59,7 @@ export type MovieDetail = Movie & {
   voted: boolean;
 };
 
-export type VoteChoice = 'LIKE' | 'DISLIKE' | 'SUPER' | 'VETO';
+export type VoteChoice = 'LIKE' | 'DISLIKE' | 'VETO';
 
 export type Progress = { total: number; finishedCount: number; members: { nickname: string; finished: boolean }[] };
 

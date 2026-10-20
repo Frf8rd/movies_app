@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { formatCode } from '@/components/room/CodeInput';
 import { Colors, Radius } from '@/constants/theme';
 import type { Room, RoomStatus } from '@/types/models';
 
@@ -22,7 +23,7 @@ export function ActiveRoomCard({ room, onPress }: { room: Room; onPress: () => v
           {room.title || 'Cameră activă'}
         </Text>
         <Text style={styles.sub}>
-          {room.code} · {room.membersCount} participanți · {STATUS_LABEL[room.status]}
+          {formatCode(room.code)} · {room.membersCount} participanți · {STATUS_LABEL[room.status]}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />

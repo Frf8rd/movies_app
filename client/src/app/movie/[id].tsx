@@ -10,7 +10,8 @@ import { Poster } from '@/components/movie/Poster';
 import { Chip } from '@/components/ui/Chip';
 import { ErrorState, Loading } from '@/components/ui/StateViews';
 import { Colors, Radius } from '@/constants/theme';
-import { useMovie } from '@/hooks/queries';
+import { useMovie, useWatchlist } from '@/hooks/queries';
+import { ApiError } from '@/services/api';
 import { addToWatchlist, removeFromWatchlist } from '@/services/me';
 import { useAuth } from '@/store/auth';
 
@@ -19,10 +20,11 @@ export default function MovieDetailsScreen() {
   const qc = useQueryClient();
   const isGuest = useAuth((s) => s.isGuest);
   const { data: m, isLoading, isError, error, refetch } = useMovie(id);
+  const watchlist = useWatchlist(!isGuest); // detaliile filmului nu spun dacă e în watchlist
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<boolean | null>(null); // optimistic
 
-  const inList = saved ?? m?.inWatchlist ?? false;
+  const inList = saved ?? m?.inWatchlist ?? watchlist.data?.some((w) => String(w.id) === String(m?.id)) ?? false;
 
   const toggle = async () => {
     if (!m || busy) return;
@@ -32,8 +34,9 @@ export default function MovieDetailsScreen() {
     try {
       await (next ? addToWatchlist(m.id) : removeFromWatchlist(m.id));
       qc.invalidateQueries({ queryKey: ['watchlist'] });
-    } catch {
-      setSaved(!next); // revert
+    } catch (e) {
+      // 409 = deja în watchlist, 404 = deja scos: starea dorită e oricum cea corectă
+      if (!(e instanceof ApiError && (e.status === 409 || e.status === 404))) setSaved(!next); // altfel revert
     } finally {
       setBusy(false);
     }

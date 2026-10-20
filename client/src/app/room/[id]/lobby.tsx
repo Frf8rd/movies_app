@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { formatCode } from '@/components/room/CodeInput';
 import { Avatar } from '@/components/ui/Avatar';
 import { ErrorState, Loading } from '@/components/ui/StateViews';
 import { Colors, Radius } from '@/constants/theme';
@@ -35,7 +36,7 @@ export default function LobbyScreen() {
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-  const share = () => room && Share.share({ message: `Join my ReelMatch room "${room.title}" with code ${room.code}` });
+  const share = () => room && Share.share({ message: `Join my ReelMatch room "${room.title}" with code ${formatCode(room.code)}` });
 
   const onStart = async () => {
     setErr(null);
@@ -98,7 +99,7 @@ export default function LobbyScreen() {
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.codeBox}>
               <Pressable onPress={copy} style={styles.codeRow} hitSlop={8}>
-                <Text style={styles.code}>{room.code}</Text>
+                <Text style={styles.code}>{formatCode(room.code)}</Text>
                 <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={20} color={copied ? '#22D3C5' : Colors.textMuted} />
               </Pressable>
               <Text style={styles.codeHint}>{copied ? 'Copied!' : 'Share this code with your friends'}</Text>

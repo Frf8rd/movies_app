@@ -1,42 +1,39 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Radius } from '@/constants/theme';
+import { Poster } from '@/components/movie/Poster';
+import { Colors } from '@/constants/theme';
 import type { Movie } from '@/types/models';
 
-export const CARD_WIDTH = 104;
+export const CARD_WIDTH = 132;
 
-export function MovieCard({ movie, onPress }: { movie: Movie; onPress: () => void }) {
+// Poster mare (din backend: movie.posterUrl) cu rating pe colț și titlul + anul peste imagine.
+export function MovieCard({ movie, onPress, width = CARD_WIDTH }: { movie: Movie; onPress: () => void; width?: number }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.wrap, pressed && { opacity: 0.85 }]}>
-      <View style={styles.poster}>
-        {movie.posterUrl ? (
-          <Image source={{ uri: movie.posterUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
-        ) : (
-          <View style={styles.noPoster}>
-            <Ionicons name="film-outline" size={26} color={Colors.textMuted} />
-          </View>
-        )}
-      </View>
-      <Text style={styles.title} numberOfLines={1}>
-        {movie.title}
-      </Text>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, { width, height: width * 1.5 }, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}>
+      <Poster uri={movie.posterUrl} title={movie.title} id={movie.id} style={StyleSheet.absoluteFill} />
+
       {movie.rating !== null && (
-        <View style={styles.ratingRow}>
-          <Ionicons name="star" size={11} color={Colors.star} />
-          <Text style={styles.rating}>{movie.rating.toFixed(1)}</Text>
+        <View style={styles.rating}>
+          <Ionicons name="star" size={10} color={Colors.star} />
+          <Text style={styles.ratingText}>{movie.rating.toFixed(1)}</Text>
         </View>
       )}
+
+      <LinearGradient colors={['transparent', 'rgba(10,15,36,0.95)']} style={styles.info}>
+        <Text style={styles.title} numberOfLines={2}>{movie.title}</Text>
+        {movie.year !== null && <Text style={styles.year}>{movie.year}</Text>}
+      </LinearGradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: CARD_WIDTH, gap: 4 },
-  poster: { width: CARD_WIDTH, height: CARD_WIDTH * 1.5, borderRadius: Radius.sm, overflow: 'hidden', backgroundColor: Colors.card },
-  noPoster: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { color: Colors.text, fontSize: 11.5, fontWeight: '600', marginTop: 4 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  rating: { color: Colors.text, fontSize: 11.5, fontWeight: '700' },
+  card: { borderRadius: 16, overflow: 'hidden', backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
+  rating: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, height: 22, borderRadius: 11, backgroundColor: 'rgba(10,15,36,0.75)' },
+  ratingText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  info: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingTop: 36, paddingBottom: 10, gap: 1 },
+  title: { color: Colors.text, fontSize: 13, fontWeight: '800', lineHeight: 16 },
+  year: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '600' },
 });

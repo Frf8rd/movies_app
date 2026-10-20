@@ -1,7 +1,7 @@
 // Serverul Django poate întoarce camelCase sau snake_case și liste simple sau paginate DRF
 // ({ results: [...] }). Normalizăm aici, într-un singur loc, ca ecranele să rămână curate.
 import { TMDB_IMAGE_BASE } from '@/constants/config';
-import type { Genre, HistoryEntry, Member, Movie, MovieDetail, MovieList, Profile, Provider, ResultItem, Results, Room, RoomDetail, RoomStatus, Stats, User } from '@/types/models';
+import type { Genre, HistoryEntry, Id, Member, Movie, MovieDetail, MovieList, Profile, Provider, ResultItem, Results, Room, RoomDetail, RoomStatus, Stats, User } from '@/types/models';
 
 type Raw = Record<string, any>;
 
@@ -41,7 +41,7 @@ export function normalizeMovie(o: Raw): Movie {
 }
 
 export function normalizeRoom(o: Raw): Room {
-  const members = pick(o, 'membersCount', 'members_count', 'participantsCount');
+  const members = pick(o, 'membersCount', 'members_count', 'memberCount', 'member_count', 'participantsCount');
   const list = Array.isArray(o.members) ? o.members.length : 0;
   return {
     id: o.id,
@@ -91,20 +91,28 @@ export function normalizeMovieDetail(o: Raw): MovieDetail {
   };
 }
 
-export function normalizeMember(o: Raw): Member {
+export function normalizeMember(o: Raw, myMemberId: unknown = null): Member {
   return {
     id: o.id,
     name: String(pick(o, 'nickname', 'name', 'username') ?? ''),
     avatarUrl: pick(o, 'avatarUrl', 'avatar_url'),
     isHost: Boolean(pick(o, 'isHost', 'is_host')),
-    isMe: Boolean(pick(o, 'isMe', 'is_me')),
+    isMe: Boolean(pick(o, 'isMe', 'is_me')) || (myMemberId !== null && String(o.id) === String(myMemberId)),
     finished: Boolean(pick(o, 'finished', 'isFinished', 'is_finished')),
   };
 }
 
+// backend-ul trimite filmul ales ca obiect (`pickedMovie`), nu doar id-ul
+function pickedId(o: Raw): Id | null {
+  const v = pick(o, 'pickedMovieId', 'picked_movie_id', 'pickedMovie', 'picked_movie');
+  if (v === null) return null;
+  return typeof v === 'object' ? ((v as Raw).id ?? null) : (v as Id);
+}
+
 export function normalizeRoomDetail(o: Raw): RoomDetail {
   const f: Raw = o.filters ?? o;
-  const members = Array.isArray(o.members) ? o.members.map(normalizeMember) : [];
+  const myMemberId = pick(o, 'myMemberId', 'my_member_id');
+  const members = Array.isArray(o.members) ? o.members.map((m: Raw) => normalizeMember(m, myMemberId)) : [];
   const base = normalizeRoom(o);
   return {
     ...base,
@@ -112,7 +120,7 @@ export function normalizeRoomDetail(o: Raw): RoomDetail {
     isHost: Boolean(pick(o, 'isHost', 'is_host')) || members.some((m) => m.isHost && m.isMe),
     members,
     deckSize: Number(pick(o, 'deckSize', 'deck_size') ?? 0),
-    pickedMovieId: pick(o, 'pickedMovieId', 'picked_movie_id', 'pickedMovie'),
+    pickedMovieId: pickedId(o),
     filters: {
       genres: names(f.genres ?? f.genreNames ?? f.genre_names),
       providers: names(f.providers ?? f.providerNames ?? f.provider_names),
@@ -136,8 +144,8 @@ export function normalizeResultItem(o: Raw): ResultItem {
 export function normalizeResults(o: Raw): Results {
   return {
     top: toList(o.top ?? o.unanimous ?? o.accepted ?? o.results).map(normalizeResultItem),
-    compromises: toList(o.compromises ?? o.compromise).map(normalizeResultItem),
-    pickedMovieId: pick(o, 'pickedMovieId', 'picked_movie_id'),
+    compromises: toList(o.compromises ?? o.closest ?? o.compromise).map(normalizeResultItem),
+    pickedMovieId: pickedId(o),
   };
 }
 
@@ -145,18 +153,24 @@ export function normalizeHistory(o: Raw): HistoryEntry {
   return {
     id: o.id,
     movie: normalizeMovie(o.movie ?? o),
-    watchedAt: pick(o, 'watchedAt', 'watched_at'),
+    watchedAt: pick(o, 'watchedAt', 'watched_at', 'watchedOn', 'watched_on'),
     myRating: num(pick(o, 'myRating', 'my_rating')),
   };
 }
+
+// backend: FRIENDS / FAMILY / COUPLE / OTHER  ->  Friends / Family / Couple / Other
+const categoryLabel = (c: unknown) => {
+  const s = String(c ?? '');
+  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+};
 
 export function normalizeList(o: Raw): MovieList {
   const items = toList<Raw>(o.items ?? o.movies);
   return {
     id: o.id,
     name: String(o.name ?? ''),
-    category: String(o.category ?? ''),
-    itemsCount: Number(pick(o, 'itemsCount', 'items_count') ?? items.length),
+    category: categoryLabel(o.category),
+    itemsCount: Number(pick(o, 'itemsCount', 'items_count', 'itemCount', 'item_count') ?? items.length),
     movies: items.map((i) => normalizeMovie(i.movie ?? i)),
   };
 }

@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { Colors } from '@/constants/theme';
@@ -10,7 +11,9 @@ const PALETTES: [string, string][] = [
 
 // Poster real dacă există URL, altfel un gradient cu titlul (ca să nu rămână găuri în UI).
 export function Poster({ uri, title, id, style }: { uri?: string | null; title?: string; id?: string | number; style?: StyleProp<ViewStyle> }) {
-  if (uri) return <Image source={{ uri }} style={[styles.fill, style as any]} contentFit="cover" transition={150} />;
+  const [imageFailed, setImageFailed] = useState(false);
+  useEffect(() => setImageFailed(false), [uri]);
+  if (uri && !imageFailed) return <Image source={{ uri }} style={[styles.fill, style as any]} contentFit="cover" transition={150} onError={() => setImageFailed(true)} />;
   const seed = Number(String(id ?? title ?? 0).replace(/\D/g, '')) || (title ?? '').length;
   return (
     <LinearGradient colors={PALETTES[seed % PALETTES.length]} style={[styles.fill, styles.center, style]}>

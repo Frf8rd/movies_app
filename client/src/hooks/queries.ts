@@ -54,7 +54,7 @@ export const useMovie = (id: Id) => useQuery({ queryKey: ['movie', String(id)], 
 
 export const useProfile = () => useQuery({ queryKey: ['profile'], queryFn: getProfile });
 export const useStats = () => useQuery({ queryKey: ['stats'], queryFn: getStats });
-export const useWatchlist = () => useQuery({ queryKey: ['watchlist'], queryFn: getWatchlist });
+export const useWatchlist = (enabled = true) => useQuery({ queryKey: ['watchlist'], queryFn: getWatchlist, enabled });
 export const useHistory = () => useQuery({ queryKey: ['history'], queryFn: getHistory });
 export const useLists = () => useQuery({ queryKey: ['lists'], queryFn: getLists });
 export const useList = (id: Id) => useQuery({ queryKey: ['lists', String(id)], queryFn: () => getList(id) });

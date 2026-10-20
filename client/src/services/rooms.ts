@@ -71,8 +71,11 @@ export const closeVoting = (id: Id) => api(`/rooms/${id}/close-voting`, { method
 export const pickMovie = (id: Id, movieId: Id) => api(`/rooms/${id}/pick`, { method: 'POST', body: { movieId } });
 
 // GET /rooms/:id/deck  (fără voturile altora; marchează filmele deja votate de mine)
+// backend: { roomStatus, total, votedCount, vetoUsed, deck: [{ position, voted, myChoice, movie: {...} }] }
 export async function getDeck(id: Id): Promise<MovieDetail[]> {
-  return toList(await api<unknown>(`/rooms/${id}/deck`)).map(normalizeMovieDetail);
+  const data = await api<any>(`/rooms/${id}/deck`);
+  const items: any[] = Array.isArray(data?.deck) ? data.deck : toList(data);
+  return items.map((i) => normalizeMovieDetail({ ...(i.movie ?? i), voted: i.voted ?? false }));
 }
 // POST /rooms/:id/votes  { movieId, choice } — 409 dacă ai votat deja
 export const sendVote = (id: Id, movieId: Id, choice: VoteChoice) =>

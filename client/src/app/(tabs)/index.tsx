@@ -6,20 +6,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActionCard } from '@/components/home/ActionCard';
 import { ActiveRoomCard } from '@/components/home/ActiveRoomCard';
 import { TrendingSection } from '@/components/home/TrendingSection';
-import { Avatar } from '@/components/ui/Avatar';
 import { Logo } from '@/components/ui/Logo';
 import { Colors } from '@/constants/theme';
 import { useActiveRooms, useMe, useTrending } from '@/hooks/queries';
-import { useAuth } from '@/store/auth';
 
 export default function HomeScreen() {
-  const storeUser = useAuth((s) => s.user);
-  const me = useMe();
+  const me = useMe(); // sincronizează utilizatorul în store (GET /auth/me)
   const rooms = useActiveRooms();
   const trending = useTrending();
   const [refreshing, setRefreshing] = useState(false);
 
-  const user = me.data ?? storeUser;
   const activeRoom = rooms.data?.[0];
 
   const onRefresh = useCallback(async () => {
@@ -36,7 +32,6 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
         <View style={styles.header}>
           <Logo />
-          <Avatar uri={user?.avatarUrl} name={user?.name} size={36} />
         </View>
 
         {activeRoom && (

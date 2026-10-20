@@ -12,7 +12,7 @@ export function TrendingSection() {
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.heading}>Trending films</Text>
+        <Text style={styles.heading}>Trending now</Text>
         <Pressable hitSlop={8} onPress={() => router.push('/movies')}>
           <Text style={styles.seeAll}>See all</Text>
         </Pressable>
@@ -45,5 +45,5 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heading: { color: Colors.text, fontSize: 18, fontWeight: '800' },
   seeAll: { color: Colors.primary, fontSize: 13, fontWeight: '700' },
-  list: { gap: 12, paddingRight: 8 },
+  list: { gap: 14, paddingRight: 8 },
 });

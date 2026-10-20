@@ -1,6 +1,5 @@
 import { API_URL } from '@/constants/config';
-import { devMock, NO_MOCK } from '@/services/devMocks';
-import { DEV_TOKEN, useAuth } from '@/store/auth';
+import { useAuth } from '@/store/auth';
 
 export class ApiError extends Error {
   status: number;
@@ -59,26 +58,26 @@ async function parseError(res: Response): Promise<ApiError> {
 export async function api<T = unknown>(path: string, opts: Options = {}): Promise<T> {
   const { method = 'GET', body, auth = true, signal } = opts;
 
-  // Sesiune „Skip (dev)": răspunde cu date locale, fără server (doar în __DEV__).
-  if (__DEV__ && useAuth.getState().access === DEV_TOKEN) {
-    const mock = devMock(method, path, body);
-    if (mock !== NO_MOCK) return mock as T;
-  }
-
   const run = async (token: string | null) => {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (auth && token) headers.Authorization = `Bearer ${token}`;
+    // timeout 15s: dacă serverul nu răspunde, ecranul arată eroare cu buton de reîncercare, nu loading infinit
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15_000);
+    signal?.addEventListener('abort', () => ctrl.abort());
     try {
       return await fetch(`${API_URL}${path}`, {
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
-        signal,
+        signal: ctrl.signal,
       });
     } catch (e) {
-      if ((e as Error).name === 'AbortError') throw e;
+      if (signal?.aborted) throw e;
       throw new ApiError(0, 'NETWORK_ERROR', 'Nu mă pot conecta la server. Verifică rețeaua.');
+    } finally {
+      clearTimeout(timer);
     }
   };
 

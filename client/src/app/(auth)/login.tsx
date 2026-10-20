@@ -1,27 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Logo } from '@/components/ui/Logo';
-import { Colors, Radius } from '@/constants/theme';
+import { AuthShell } from '@/components/ui/AuthShell';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { TextField } from '@/components/ui/TextField';
+import { Colors } from '@/constants/theme';
 import { login } from '@/services/auth';
-import { useAuth } from '@/store/auth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const devSkip = useAuth((s) => s.devSkip);
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
 
   const onSubmit = async () => {
+    if (!canSubmit) return;
     setError(null);
     setLoading(true);
     try {
@@ -35,103 +32,36 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={[Colors.purple, Colors.pink, Colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero} />
-      <SafeAreaView style={styles.safe}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-          <View style={styles.logo}>
-            <Logo size={34} />
-            <Text style={styles.welcome}>Welcome back!</Text>
-            <Text style={styles.sub}>Log in to continue</Text>
-          </View>
+    <AuthShell
+      title="Welcome back!"
+      subtitle="Log in to continue your movie night"
+      footer={
+        <View style={styles.switchRow}>
+          <Text style={styles.switchText}>Don't have an account? </Text>
+          <Pressable onPress={() => router.replace('/register' as any)} hitSlop={8}>
+            <Text style={styles.switchLink}>Sign up</Text>
+          </Pressable>
+        </View>
+      }>
+      <TextField label="Email" icon="mail-outline" placeholder="you@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
+      <TextField label="Password" icon="lock-closed-outline" placeholder="Your password" value={password} onChangeText={setPassword} password onSubmitEditing={onSubmit} />
 
-          <View style={styles.form}>
-            <View style={styles.field}>
-              <Ionicons name="mail-outline" size={18} color={Colors.textMuted} />
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
-                placeholderTextColor={Colors.textMuted}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.field}>
-              <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Password"
-                placeholderTextColor={Colors.textMuted}
-                secureTextEntry={!show}
-                autoCapitalize="none"
-                style={styles.input}
-                onSubmitEditing={canSubmit ? onSubmit : undefined}
-              />
-              <Pressable onPress={() => setShow((v) => !v)} hitSlop={8}>
-                <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={18} color={Colors.textMuted} />
-              </Pressable>
-            </View>
+      {error && (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={16} color={Colors.danger} />
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      )}
 
-            {error && <Text style={styles.error}>{error}</Text>}
-
-            <Pressable
-              onPress={onSubmit}
-              disabled={!canSubmit}
-              style={({ pressed }) => [styles.btn, (!canSubmit || pressed) && { opacity: 0.6 }]}>
-              {loading ? <ActivityIndicator color="#1A1030" /> : <Text style={styles.btnText}>Log in</Text>}
-            </Pressable>
-
-            <View style={styles.switchRow}>
-              <Text style={styles.switchText}>Don't have an account? </Text>
-              <Pressable onPress={() => router.replace('/register' as any)} hitSlop={8}>
-                <Text style={styles.switchLink}>Sign up</Text>
-              </Pressable>
-            </View>
-
-            {/* DEV ONLY: dispare automat în build-urile de producție */}
-            {__DEV__ && (
-              <Pressable onPress={devSkip} style={({ pressed }) => [styles.skip, pressed && { opacity: 0.6 }]}>
-                <Text style={styles.skipText}>Skip (dev)</Text>
-                <Ionicons name="arrow-forward" size={16} color={Colors.textMuted} />
-              </Pressable>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </View>
+      <GradientButton label="Log in" onPress={onSubmit} loading={loading} disabled={!canSubmit && !loading} />
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
-  hero: { position: 'absolute', top: 0, left: 0, right: 0, height: 260, borderBottomLeftRadius: 60, borderBottomRightRadius: 60, opacity: 0.9 },
-  safe: { flex: 1 },
-  flex: { flex: 1, paddingHorizontal: 24 },
-  logo: { alignItems: 'center', gap: 6, marginTop: 56, marginBottom: 56 },
-  welcome: { color: Colors.text, fontSize: 20, fontWeight: '800', marginTop: 16 },
-  sub: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  form: { gap: 14, marginTop: 40 },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 52,
-    paddingHorizontal: 14,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.bgElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  input: { flex: 1, color: Colors.text, fontSize: 15 },
-  error: { color: Colors.danger, fontSize: 13 },
-  btn: { height: 52, borderRadius: Radius.md, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
-  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
-  switchText: { color: Colors.textMuted, fontSize: 13 },
-  switchLink: { color: Colors.primary, fontSize: 13, fontWeight: '800' },
-  skip: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
-  skipText: { color: Colors.textMuted, fontSize: 14, fontWeight: '600' },
-  btnText: { color: '#1A1030', fontSize: 16, fontWeight: '800' },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 12, backgroundColor: 'rgba(255,84,112,0.12)' },
+  error: { flex: 1, color: Colors.danger, fontSize: 13 },
+  switchRow: { flexDirection: 'row', justifyContent: 'center' },
+  switchText: { color: Colors.textMuted, fontSize: 14 },
+  switchLink: { color: Colors.primary, fontSize: 14, fontWeight: '800' },
 });

@@ -6,7 +6,6 @@ import type { User } from '@/types/models';
 const ACCESS_KEY = 'rm_access';
 const REFRESH_KEY = 'rm_refresh';
 const GUEST_KEY = 'rm_guest';
-export const DEV_TOKEN = 'dev-skip-token';
 
 type AuthState = {
   hydrated: boolean;
@@ -19,8 +18,6 @@ type AuthState = {
   setSession: (s: { access: string; refresh?: string | null; user?: User | null }) => Promise<void>;
   setGuestSession: (s: { token: string; user?: User | null }) => Promise<void>;
   setUser: (user: User | null) => void;
-  /** DEV ONLY: sesiune falsă, fără backend și fără salvare în SecureStore. */
-  devSkip: () => void;
   logout: () => Promise<void>;
 };
 
@@ -59,14 +56,6 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => set({ user }),
-
-  devSkip: () =>
-    set({
-      access: DEV_TOKEN,
-      isGuest: false,
-      refresh: null,
-      user: { id: 'dev', name: 'Alex', email: 'dev@reelmatch.local', avatarUrl: null },
-    }),
 
   logout: async () => {
     await Promise.all([

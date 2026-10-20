@@ -10,7 +10,7 @@ export async function getLists(): Promise<MovieList[]> {
 }
 // POST /lists  { name, category }
 export async function createList(name: string, category: string): Promise<MovieList> {
-  return normalizeList(await api<any>('/lists', { method: 'POST', body: { name, category } }));
+  return normalizeList(await api<any>('/lists', { method: 'POST', body: { name, category: category.toUpperCase() } }));
 }
 // GET /lists/:id
 export async function getList(id: Id): Promise<MovieList> {
@@ -18,7 +18,7 @@ export async function getList(id: Id): Promise<MovieList> {
 }
 // PATCH /lists/:id  { name?, category? }
 export const updateList = (id: Id, patch: { name?: string; category?: string }) =>
-  api(`/lists/${id}`, { method: 'PATCH', body: patch });
+  api(`/lists/${id}`, { method: 'PATCH', body: { ...patch, ...(patch.category ? { category: patch.category.toUpperCase() } : {}) } });
 // DELETE /lists/:id
 export const deleteList = (id: Id) => api(`/lists/${id}`, { method: 'DELETE' });
 // POST /lists/:id/items  { movieId }

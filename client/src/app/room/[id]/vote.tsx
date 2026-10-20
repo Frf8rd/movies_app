@@ -15,6 +15,8 @@ import { ApiError } from '@/services/api';
 import { closeVoting, sendVote } from '@/services/rooms';
 import { leaveToHome } from '@/utils/nav';
 
+const LIKE = '#22D3C5';
+
 type Unsent = { movieId: string | number; choice: SwipeChoice };
 
 export default function VoteScreen() {
@@ -82,18 +84,26 @@ export default function VoteScreen() {
 
   const current = index !== null ? Math.min(index + 1, total) : 0;
   const finished = progress.data?.finishedCount ?? 0;
-  const members = progress.data?.total ?? room.data?.members.length ?? 0;
+  const members = progress.data?.members.length || room.data?.members.length || 0;
 
   return (
     <View style={styles.root}>
       <LinearGradient colors={['rgba(91,43,217,0.55)', Colors.bg]} style={styles.glow} />
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={leaveToHome} hitSlop={12}>
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Pressable onPress={leaveToHome} hitSlop={12} style={styles.back}>
+            <Ionicons name="arrow-back" size={22} color={Colors.text} />
           </Pressable>
-          <Text style={styles.count}>{total ? `${current}/${total}` : ''}</Text>
+          <Text style={styles.roomTitle} numberOfLines={1}>{room.data?.title ?? ''}</Text>
+          <View style={styles.countPill}>
+            <Text style={styles.count}>{total ? `${Math.min(current, total)}/${total}` : '–'}</Text>
+          </View>
         </View>
+        {total > 0 && index !== null && (
+          <View style={styles.bar}>
+            <View style={[styles.barFill, { width: `${Math.min(100, (index / total) * 100)}%` }]} />
+          </View>
+        )}
 
         {deck.isLoading ? (
           <Loading />
@@ -105,7 +115,7 @@ export default function VoteScreen() {
           <Loading />
         ) : done ? (
           <View style={styles.doneBox}>
-            <Ionicons name="checkmark-circle" size={64} color="#22D3C5" />
+            <Ionicons name="checkmark-circle" size={72} color={LIKE} />
             <Text style={styles.doneTitle}>You're done!</Text>
             <Text style={styles.doneSub}>
               {finished} of {members} finished voting.{'\n'}Results appear when everyone is done.
@@ -125,13 +135,9 @@ export default function VoteScreen() {
 
             <View style={styles.actions}>
               <Round label="Dislike" color={Colors.pink} icon="close" onPress={() => deckRef.current?.swipe('DISLIKE')} />
-              <Round label="Super like" color={Colors.purpleLight} icon="star" big onPress={() => deckRef.current?.swipe('SUPER')} />
-              <Round label="Like" color="#22D3C5" icon="heart" onPress={() => deckRef.current?.swipe('LIKE')} />
+              <Round label="Like" color={LIKE} icon="heart" onPress={() => deckRef.current?.swipe('LIKE')} />
             </View>
-
-            <View style={styles.bar}>
-              <View style={[styles.barFill, { width: `${(index / total) * 100}%` }]} />
-            </View>
+            <Text style={styles.hint}>Swipe the card or tap a button</Text>
             {room.data && room.data.members.length > 1 && (
               <Text style={styles.others}>
                 {room.data.members.filter((m) => m.finished).length} of {room.data.members.length} finished
@@ -150,14 +156,13 @@ export default function VoteScreen() {
   );
 }
 
-function Round({ label, color, icon, big, onPress }: { label: string; color: string; icon: keyof typeof Ionicons.glyphMap; big?: boolean; onPress: () => void }) {
-  const size = big ? 68 : 60;
+function Round({ label, color, icon, onPress }: { label: string; color: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
   return (
     <View style={styles.roundWrap}>
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.round, { width: size, height: size, borderRadius: size / 2, borderColor: color, backgroundColor: color + '33' }, pressed && { opacity: 0.6 }]}>
-        <Ionicons name={icon} size={big ? 30 : 26} color={color} />
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.round, { borderColor: color, backgroundColor: color + '26' }, pressed && { opacity: 0.6, transform: [{ scale: 0.95 }] }]}>
+        <Ionicons name={icon} size={34} color={color} />
       </Pressable>
-      <Text style={styles.roundLabel}>{label}</Text>
+      <Text style={[styles.roundLabel, { color }]}>{label}</Text>
     </View>
   );
 }
@@ -166,16 +171,20 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   glow: { position: 'absolute', top: 0, left: 0, right: 0, height: 220 },
   safe: { flex: 1, paddingHorizontal: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 48 },
-  count: { color: Colors.text, fontSize: 15, fontWeight: '800' },
-  deck: { flex: 1, marginTop: 8, marginBottom: 16 },
-  actions: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', gap: 28 },
-  roundWrap: { alignItems: 'center', gap: 6 },
-  round: { borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  roundLabel: { color: Colors.textMuted, fontSize: 11 },
-  bar: { height: 5, borderRadius: 3, backgroundColor: Colors.border, marginTop: 14, overflow: 'hidden' },
-  barFill: { height: '100%', backgroundColor: Colors.purpleLight },
-  others: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 8, marginBottom: 4 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 52, gap: 12 },
+  back: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  roomTitle: { flex: 1, color: Colors.text, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  countPill: { minWidth: 56, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
+  count: { color: Colors.text, fontSize: 13, fontWeight: '800' },
+  bar: { height: 4, borderRadius: 2, backgroundColor: Colors.border, overflow: 'hidden', marginBottom: 4 },
+  barFill: { height: '100%', borderRadius: 2, backgroundColor: Colors.primary },
+  deck: { flex: 1, marginTop: 10, marginBottom: 18 },
+  actions: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', gap: 56 },
+  roundWrap: { alignItems: 'center', gap: 8 },
+  round: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  roundLabel: { fontSize: 13, fontWeight: '800' },
+  hint: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 12 },
+  others: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 6, marginBottom: 4 },
   doneBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   doneTitle: { color: Colors.text, fontSize: 24, fontWeight: '800' },
   doneSub: { color: Colors.textMuted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
