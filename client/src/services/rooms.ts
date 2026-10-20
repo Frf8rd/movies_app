@@ -62,7 +62,8 @@ export async function getRoom(id: Id): Promise<RoomDetail> {
   return normalizeRoomDetail(await api<any>(`/rooms/${id}`));
 }
 // POST /rooms/:id/start  (doar gazda) — 422 dacă filtrele sunt prea stricte
-export const startRoom = (id: Id) => api(`/rooms/${id}/start`, { method: 'POST' });
+// durează: serverul aduce filmele de la TMDB și le salvează -> timeout mare (prima cameră e cea mai lentă)
+export const startRoom = (id: Id) => api(`/rooms/${id}/start`, { method: 'POST', timeoutMs: 150_000 });
 // DELETE /rooms/:id/leave
 export const leaveRoom = (id: Id) => api(`/rooms/${id}/leave`, { method: 'DELETE', timeoutMs: 45_000 });
 // POST /rooms/:id/close-voting  (doar gazda)
