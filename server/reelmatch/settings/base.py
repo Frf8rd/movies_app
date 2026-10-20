@@ -73,7 +73,8 @@ _is_postgres = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 DATABASES = {
     "default": dj_database_url.parse(
         DATABASE_URL,
-        conn_max_age=0,  # Neon + pooler: nu păstra conexiuni persistente
+        conn_max_age=env.int("DB_CONN_MAX_AGE", default=60),  # reutilizează conexiunea (handshake-ul TLS spre Neon e lent)
+        conn_health_checks=True,
         ssl_require=_is_postgres and "localhost" not in DATABASE_URL,
     )
 }

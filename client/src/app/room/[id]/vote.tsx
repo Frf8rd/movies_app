@@ -50,7 +50,14 @@ export default function VoteScreen() {
   }, [room.data?.status, id]);
 
   // trimite votul în fundal, cu 3 încercări; dacă tot eșuează îl păstrăm pentru „Retry"
-  const send = async (movieId: string | number, choice: SwipeChoice) => {
+  // coadă: voturile pleacă UNUL câte UNUL (serverul blochează camera la fiecare vot,
+  // deci cererile paralele s-ar aștepta între ele și ar da timeout)
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const send = (movieId: string | number, choice: SwipeChoice) => {
+    queue.current = queue.current.then(() => sendNow(movieId, choice));
+    return queue.current;
+  };
+  const sendNow = async (movieId: string | number, choice: SwipeChoice) => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         await sendVote(id, movieId, choice);

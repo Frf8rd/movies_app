@@ -57,9 +57,9 @@ export default function LobbyScreen() {
       {
         text: 'Leave',
         style: 'destructive',
-        onPress: async () => {
-          try { await leaveRoom(id); } catch {}
-          qc.invalidateQueries({ queryKey: ['rooms'] });
+        onPress: () => {
+          // pornim cererea (tokenul e citit imediat), dar NU așteptăm serverul: ieșim direct din ecran
+          leaveRoom(id).catch(() => {}).finally(() => qc.invalidateQueries({ queryKey: ['rooms'] }));
           leaveToHome();
         },
       },

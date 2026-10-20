@@ -64,7 +64,7 @@ export async function getRoom(id: Id): Promise<RoomDetail> {
 // POST /rooms/:id/start  (doar gazda) — 422 dacă filtrele sunt prea stricte
 export const startRoom = (id: Id) => api(`/rooms/${id}/start`, { method: 'POST' });
 // DELETE /rooms/:id/leave
-export const leaveRoom = (id: Id) => api(`/rooms/${id}/leave`, { method: 'DELETE' });
+export const leaveRoom = (id: Id) => api(`/rooms/${id}/leave`, { method: 'DELETE', timeoutMs: 45_000 });
 // POST /rooms/:id/close-voting  (doar gazda)
 export const closeVoting = (id: Id) => api(`/rooms/${id}/close-voting`, { method: 'POST' });
 // POST /rooms/:id/pick  { movieId }
@@ -79,7 +79,7 @@ export async function getDeck(id: Id): Promise<MovieDetail[]> {
 }
 // POST /rooms/:id/votes  { movieId, choice } — 409 dacă ai votat deja
 export const sendVote = (id: Id, movieId: Id, choice: VoteChoice) =>
-  api(`/rooms/${id}/votes`, { method: 'POST', body: { movieId, choice } });
+  api(`/rooms/${id}/votes`, { method: 'POST', body: { movieId, choice }, timeoutMs: 45_000 });
 
 // GET /rooms/:id/progress  (fără voturi, doar cine a terminat)
 export async function getProgress(id: Id): Promise<Progress> {

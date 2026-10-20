@@ -16,6 +16,7 @@ type Options = {
   body?: unknown;
   auth?: boolean; // false = endpoint public
   signal?: AbortSignal;
+  timeoutMs?: number; // implicit 15s; serverul gratuit Render poate fi lent
 };
 
 let refreshing: Promise<string | null> | null = null;
@@ -56,7 +57,7 @@ async function parseError(res: Response): Promise<ApiError> {
 }
 
 export async function api<T = unknown>(path: string, opts: Options = {}): Promise<T> {
-  const { method = 'GET', body, auth = true, signal } = opts;
+  const { method = 'GET', body, auth = true, signal, timeoutMs = 15_000 } = opts;
 
   const run = async (token: string | null) => {
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -64,7 +65,7 @@ export async function api<T = unknown>(path: string, opts: Options = {}): Promis
     if (auth && token) headers.Authorization = `Bearer ${token}`;
     // timeout 15s: dacă serverul nu răspunde, ecranul arată eroare cu buton de reîncercare, nu loading infinit
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15_000);
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     signal?.addEventListener('abort', () => ctrl.abort());
     try {
       return await fetch(`${API_URL}${path}`, {
